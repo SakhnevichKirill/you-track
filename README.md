@@ -4,9 +4,9 @@
 
 ## Description
 
-Hard deadline value refresh using values from "Start date" and "Original esimation" (in my case: "Hard interval").
-Soft deadline refresh using ratio 75% ratio of Original esimation
-Stage refresh using Hard deadline
+* Hard deadline value refresh using values from "Start date" and "Original esimation" (in my case: "Hard interval").
+* Soft deadline value refresh using ratio 75% ratio of Original esimation.
+* Stage refresh value using Hard deadline.
 
 ## Installation
 
