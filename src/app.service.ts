@@ -4,8 +4,14 @@ import { IssueCustomFieldValue } from 'youtrack-rest-client/dist/entities/issueC
 import { duration } from './utils';
 
 class Deadline{
-  startDate: IssueCustomFieldValue;
-  interval: IssueCustomFieldValue;
+  startDate: {
+    index: number;
+    value: IssueCustomFieldValue;
+  };
+  interval: {
+    index: number;
+    value: IssueCustomFieldValue;
+  };
   hardDeadline: {
     index: number;
     value: IssueCustomFieldValue;
@@ -14,6 +20,10 @@ class Deadline{
     index: number;
     value: IssueCustomFieldValue;
   };
+  stage: {
+    index: number;
+    value: IssueCustomFieldValue;
+  }
 }
 @Injectable()
 export class AppService {
@@ -26,7 +36,7 @@ export class AppService {
     // youtrack.users.current().then((user: User) => {
     //   console.log({user});
     // });
-    this.youtrack.issues.search('project: Manuspect ').then((issues: ReducedIssue[]) => { //Этапы внедрения: pre-prototype Сцен
+    this.youtrack.issues.search('project: Manuspect').then((issues: ReducedIssue[]) => { //Этапы внедрения: pre-prototype Сцен
       issues.map((mapIssue)=>{
         this.youtrack.issues.byId(mapIssue.id).then((issue: Issue) => {
           let deadline = new Deadline()
@@ -35,11 +45,11 @@ export class AppService {
           fileds.map((filed)=>{
             if (filed.name == "Start date"){
               // console.log("Start date")
-              deadline.startDate = filed.value
+              deadline.startDate = {index: index, value: filed.value}
             }
             else if (filed.name == "Hard interval"){
               // console.log("Hard interval")
-              deadline.interval = filed.value
+              deadline.interval = {index: index, value: filed.value}
             }
             else if (filed.name == "Soft deadline"){
               // console.log("Soft deadline")
@@ -49,20 +59,82 @@ export class AppService {
               // console.log("HardDeadline")
               deadline.hardDeadline = {index: index, value: filed.value}
             }
+            else if (filed.name == "Этапы внедрения"){
+              // console.log("HardDeadline")
+              deadline.stage = {index: index, value: filed.value}
+            }
             index += 1
           })
-          if (deadline.interval){
-            console.log(deadline)
-            const hardDeadlineValue: IssueCustomFieldValue = duration(deadline.interval.id as string, deadline.startDate as number) as IssueCustomFieldValue
-            if (hardDeadlineValue != deadline.hardDeadline.value){
+          // Checkout original estimation
+          if (deadline.interval.value){
+            console.log("\nIssue: "+ mapIssue.summary)
+            // console.log(fileds)
+            // console.log(deadline)
+            const result = duration(deadline.interval.value.id as string, deadline.startDate.value as number, 0.75)
+            // Checkout hard deadline
+            if (result.newHardDeadlineValue != deadline.hardDeadline.value){
               const hardDeadline = fileds[deadline.hardDeadline.index]
-              hardDeadline.value = hardDeadlineValue
-              console.log("Before: " + new Date(deadline.hardDeadline.value as number))
-              console.log("Now: " + new Date(hardDeadlineValue as number))
-              fileds[deadline.hardDeadline.index] = hardDeadline
-              console.log(mapIssue.summary)
-              this.youtrack.issues.update({id: issue.id, fields: fileds})
+              hardDeadline.value = result.newHardDeadlineValue as IssueCustomFieldValue
+              console.log("\nUpdate HardDeadline: ")
+              console.log("Old HardDeadline: " + new Date(deadline.hardDeadline.value as number))
+              console.log("New HardDeadline: " + new Date(result.newHardDeadlineValue))
+              // fileds[deadline.hardDeadline.index] = hardDeadline
+
+              this.youtrack.issues.update({id: issue.id, fields: [hardDeadline]})
             } 
+            // Checkout soft deadline
+            if (deadline.softDeadline.value){
+              if (result.newSoftDeadlineValue < deadline.softDeadline.value){
+                console.log("\nUpdate SoftDeadline: ")
+                console.log("HardDeadline: " + new Date(result.newHardDeadlineValue))
+                console.log("Old SoftDeadline: " + new Date(deadline.softDeadline.value as number))
+                console.log("New SoftDeadline: " + new Date(result.newSoftDeadlineValue))
+                
+                const softDeadline = fileds[deadline.softDeadline.index]
+                softDeadline.value = result.newSoftDeadlineValue as IssueCustomFieldValue
+                this.youtrack.issues.update({id: issue.id, fields: [softDeadline]})
+              }
+            }
+            else {
+              console.log("\nUpdate SoftDeadline: ")
+              console.log("HardDeadline: " + new Date(result.newHardDeadlineValue))
+              console.log("New SoftDeadline: " + new Date(result.newSoftDeadlineValue))
+              const softDeadline = fileds[deadline.softDeadline.index]
+              softDeadline.value = result.newSoftDeadlineValue as IssueCustomFieldValue
+              this.youtrack.issues.update({id: issue.id, fields: [softDeadline]})
+            }
+            // Checkout stage
+            let stage = fileds[deadline.stage.index]
+              // console.log(new Date(2022, 6, 31).getTime(), new Date(2022, 6, 31))
+              // if < jule
+              if (result.newHardDeadlineValue < new Date(2022, 6, 31).getTime()){
+                stage.value = {
+                  localizedName: null,
+                  color: {
+                    foreground: '#fff',
+                    background: '#8e1600',
+                    id: '8',
+                  },
+                  name: 'pre-prototype',
+                  id: '92-93',
+                }
+                console.log(stage.value)
+              }
+              // if < august
+              else if (result.newHardDeadlineValue < new Date(2022, 7, 31).getTime()){
+                stage.value = {
+                  localizedName: null,
+                  color: {
+                    foreground: '#fff',
+                    background: '#e30000',
+                    id: '20'
+                  },
+                  name: 'prototype',
+                  id: '92-83',
+                }
+                console.log(stage.value)
+              }
+              this.youtrack.issues.update({id: issue.id, fields: [stage]})
           }
         })
       })
