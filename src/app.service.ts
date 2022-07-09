@@ -84,7 +84,7 @@ export class AppService {
             } 
             // Checkout soft deadline
             if (deadline.softDeadline.value){
-              if (result.newSoftDeadlineValue < deadline.softDeadline.value){
+              if ((deadline.startDate.value as number) > deadline.softDeadline.value || result.newSoftDeadlineValue < deadline.softDeadline.value){
                 console.log("\nUpdate SoftDeadline: ")
                 console.log("HardDeadline: " + new Date(result.newHardDeadlineValue))
                 console.log("Old SoftDeadline: " + new Date(deadline.softDeadline.value as number))
@@ -105,36 +105,38 @@ export class AppService {
             }
             // Checkout stage
             let stage = fileds[deadline.stage.index]
-              // console.log(new Date(2022, 6, 31).getTime(), new Date(2022, 6, 31))
-              // if < jule
-              if (result.newHardDeadlineValue < new Date(2022, 6, 31).getTime()){
-                stage.value = {
-                  localizedName: null,
-                  color: {
-                    foreground: '#fff',
-                    background: '#8e1600',
-                    id: '8',
-                  },
-                  name: 'pre-prototype',
-                  id: '92-93',
-                }
-                console.log(stage.value)
+            // console.log(new Date(2022, 6, 31).getTime(), new Date(2022, 6, 31))
+            // if < jule
+            if (result.newHardDeadlineValue < new Date(2022, 6, 31).getTime()){
+              stage.value = {
+                localizedName: null,
+                color: {
+                  foreground: '#fff',
+                  background: '#8e1600',
+                  id: '8',
+                },
+                name: 'pre-prototype',
+                id: '92-93',
               }
-              // if < august
-              else if (result.newHardDeadlineValue < new Date(2022, 7, 31).getTime()){
-                stage.value = {
-                  localizedName: null,
-                  color: {
-                    foreground: '#fff',
-                    background: '#e30000',
-                    id: '20'
-                  },
-                  name: 'prototype',
-                  id: '92-83',
-                }
-                console.log(stage.value)
+            }
+            // if < august
+            else if (result.newHardDeadlineValue < new Date(2022, 7, 31).getTime()){
+              stage.value = {
+                localizedName: null,
+                color: {
+                  foreground: '#fff',
+                  background: '#e30000',
+                  id: '20'
+                },
+                name: 'prototype',
+                id: '92-83',
               }
+            }
+            if (stage.value.name != deadline.stage.value.name){
+              console.log("HardDeadline: " + new Date(result.newHardDeadlineValue))
+              console.log("Stage: " + stage.value.name)
               this.youtrack.issues.update({id: issue.id, fields: [stage]})
+            }
           }
         })
       })
